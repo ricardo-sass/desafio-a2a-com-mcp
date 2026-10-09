@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ponte-a2a-mcp"
+version = "1.0.0"
+requires-python = ">=3.10"
+dependencies = ["mcp==2.3.0", "starlette==1.7.0", "uvicorn==0.54.0", "jsonschema==4.26.0"]
+
+[tool.setuptools]
+packages = ["agente", "salas_mcp"]
+
+[tool.setuptools.package-dir]
+agente = "agente/src/agente"
+salas_mcp = "servidor-mcp/src/salas_mcp"
+
+[project.optional-dependencies]
+dev = ["black==25.9.0", "mypy==1.18.2", "pytest==8.4.2", "ruff==0.13.2"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+ignore_missing_imports = true
+explicit_package_bases = true
+mypy_path = ["$MYPY_CONFIG_FILE_DIR/agente/src", "$MYPY_CONFIG_FILE_DIR/servidor-mcp/src"]
+
+[[tool.mypy.overrides]]
+module = ["mcp.*", "mcp_types.*"]
+follow_imports = "skip"

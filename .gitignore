@@ -4,3 +4,7 @@ __pycache__/
 node_modules/
 dist/
 *.log
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

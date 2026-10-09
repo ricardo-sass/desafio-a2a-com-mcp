@@ -1,0 +1,89 @@
+schema: spec-driven
+
+context: |
+  Language: Portuguese (pt-BR)
+  All artifacts must be written in Brazilian Portuguese.
+
+  Projeto: "A Ponte: um agente A2A com MCP por dentro", desafio do MBA
+  Engenharia de Software com IA.
+
+  Objetivo:
+  - Implementar dois processos separados:
+    1. Servidor MCP Streamable HTTP na porta 7301, endpoint /mcp.
+    2. Agente A2A na porta 7300, endpoint JSON-RPC /a2a e Agent Card em
+       /.well-known/agent-card.json.
+  - O agente atua como host MCP por dentro e como servidor A2A por fora.
+  - A ponte central transforma input_required do MCP em
+    TASK_STATE_INPUT_REQUIRED no A2A e depois reenvia o requestState opaco ao
+    servidor MCP no retry.
+
+  Stack decidida:
+  - Linguagem: Python 3.10+.
+  - SDK MCP: pacote oficial mcp para Python, alinhado a MCP v2 e revisão
+    2026-07-28 da spec.
+  - Ambiente local: venv.
+  - A2A: v1.0, binding JSON-RPC 2.0 sobre HTTP.
+  - Validador: python3 validador/validar.py --agente http://localhost:7300
+    --mcp http://localhost:7301.
+
+  Dados e escopo:
+  - dados/, validador/ e exemplos/ não devem ser alterados.
+  - O domínio é deliberadamente simples: salas, reservas e política de uso em
+    arquivos JSON/Markdown já fornecidos.
+  - Não usar ORM, banco de dados, camada de serviços pesada, LLM, container,
+    compose, streaming, autenticação ou autorização.
+  - Reservas criadas durante a execução ficam em memória e devem ser visíveis
+    para consultas seguintes do mesmo processo, mas não precisam sobreviver a
+    restart.
+
+  Decisões técnicas:
+  - O requestState do MRTR será assinado com HMAC-SHA256 usando segredo vindo
+    da variável de ambiente REQUEST_STATE_SECRET.
+  - O segredo deve ter no mínimo 32 bytes de aleatoriedade e nunca deve ser
+    versionado.
+  - O requestState pode ser legível, mas deve ser protegido contra adulteração.
+  - A expiração do requestState deve ficar entre 5 e 30 minutos; usar 15
+    minutos como padrão, salvo se uma proposta decidir outro valor dentro desse
+    intervalo.
+  - O requestState carrega tudo que o servidor MCP precisa para reconstruir o
+    pedido no retry; o servidor MCP não guarda estado entre input_required e
+    retry.
+  - O agente deve tratar requestState como opaco: guardar associado à Task,
+    ecoar sem modificação e nunca abrir, interpretar ou reconstruir.
+  - O estado das Tasks A2A fica em memória do processo, em estrutura indexada
+    por taskId, sem persistência após restart.
+
+  Regras arquiteturais obrigatórias:
+  - O agente deve falar com o servidor MCP por HTTP, como cliente MCP real.
+  - O agente não implementa regra de negócio de sala; conflito, política e
+    alternativas pertencem ao servidor MCP.
+  - Cada request MCP deve carregar _meta com protocolVersion,
+    clientCapabilities e traceparent quando aplicável.
+  - Nenhum lado deve inferir versão, capabilities ou contexto a partir de
+    request anterior ou conexão aberta.
+  - traceparent recebido do cliente A2A deve ter o mesmo trace-id propagado até
+    o servidor MCP e registrado em log no stderr.
+
+  Documentação final esperada no README:
+  - Como rodar os dois processos e o validador a partir de clone limpo.
+  - Onde a ponte acontece no código.
+  - Como o requestState foi protegido, por quanto tempo vale e onde fica o
+    estado das Tasks.
+  - Saída completa da última execução do validador em bloco de código.
+
+rules:
+  proposal:
+    - Escrever em pt-BR.
+    - Manter o foco em protocolo MCP/A2A e na ponte entre input_required e TASK_STATE_INPUT_REQUIRED.
+    - Declarar explicitamente fora de escopo banco de dados, ORM, LLM, autenticação, streaming e UI.
+  specs:
+    - Usar requisitos verificáveis pelo validador sempre que possível.
+    - Separar claramente comportamento MCP, comportamento A2A e comportamento da ponte.
+    - Preservar textos exatos de erro definidos no README quando especificar cenários.
+  design:
+    - Registrar pontos de código previstos para a ponte MCP/A2A.
+    - Explicar como o HMAC do requestState será construído e validado sem expor segredo.
+    - Explicar que Tasks e reservas usam memória do processo, com requestState autocontido para retry após restart do servidor MCP.
+  tasks:
+    - Organizar tarefas por processo: servidor MCP, agente A2A, ponte, README e validação.
+    - Incluir tarefas explícitas para rodar o validador e colar a saída final no README.
